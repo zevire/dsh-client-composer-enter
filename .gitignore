@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local install scratch
+.DSH_HOME/
+*.local.*

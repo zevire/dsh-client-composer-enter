@@ -1,0 +1,6 @@
+# Normalize line endings: the sources and generated artifacts are LF.
+* text=auto eol=lf
+
+# Image assets stay binary.
+*.svg text
+*.png binary

@@ -1,0 +1,8 @@
+# Profile-bundle patch for dsh-client-composer-enter.
+#
+# Installing this package adds it to the profile's `dsh.profile.bundles`, so this
+# layer applies on every profile start: one Loader row that mounts the host half
+# (the package root export) and the browser half (`exports["./client"]`) together.
+- insert:
+    - id: composer-enter
+      name: 'dsh-client-composer-enter'
