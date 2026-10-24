@@ -3,22 +3,23 @@
 > 中文（默认）：[README.md](README.md) ｜ English: [README.en.md](README.en.md)
 
 > **Unofficial third-party plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh).**
-> Enter inserts a line break. Shift/Alt+Enter sends. No dsh source changes.
+> Enter inserts a line break. Alt+Enter sends. Shift+Enter keeps the official line break. No dsh source changes.
 
 dsh's composer submits on a bare `Enter` and inserts a line break on `Shift+Enter`.
-If you write multi-line prompts, that is backwards: you send by accident and press
-modifiers to get a newline. This plugin swaps the two gestures, and keeps
-`Cmd/Ctrl+Enter` on the official complementary Queue/Steer gesture.
+If you write multi-line prompts, the bare `Enter` is backwards: you send by accident.
+This plugin turns **only the bare `Enter`** into a line break and moves sending to
+`Alt+Enter`; `Shift+Enter` keeps the official line break, and `Cmd/Ctrl+Enter` stays
+on the official complementary Queue/Steer gesture.
 
-Tested against dsh `0.1.7-rc.2`, `0.2.0-rc.2` and `0.2.1-rc.2` (Desktop and Web profiles).
+Tested against dsh `0.1.7-rc.2`, `0.2.0-rc.2`, `0.2.1-rc.2` and `0.2.1-rc.3` (Desktop and Web profiles).
 
 ## Behavior
 
 | Key | Result |
 | --- | --- |
 | `Enter` | Insert a line break |
-| `Shift + Enter` | **Send** (replayed as the official `enter` gesture) |
-| `Alt + Enter` | **Send** (same; a second send chord) |
+| `Shift + Enter` | Insert a line break — **the official default, left untouched** |
+| `Alt + Enter` | **Send** (replayed as the official `enter` gesture) |
 | `Cmd/Ctrl + Enter` | Untouched — the official complementary Queue/Steer gesture |
 | `Shift + Alt + Enter`, AltGr+Enter, other chords | Untouched |
 | IME composing (`isComposing` / keyCode 229) | Left to the input method |
@@ -37,7 +38,7 @@ The package is a standard dsh **profile bundle**: `package.json` declares
 browser half (and an inert host half). Install it from a local checkout:
 
 **Desktop app** — Settings → Plugins → install, and paste the **absolute** directory of
-this checkout, e.g. `D:\Code\dsh-client-composer-enter`. Entries install disabled:
+this checkout, e.g. `D:\Code\dsh-plugins\dsh-client-composer-enter`. Entries install disabled:
 enable the plugin in the panel. The desktop profile is owned by the Electron app, so
 the CLI refuses `dsh plugin --profile desktop …`.
 
@@ -61,12 +62,12 @@ Read on every keystroke from `localStorage`, so no reload is needed after a chan
 | Key | Value | Effect |
 | --- | --- | --- |
 | `dsh.composerEnter` | `off` | Back to the stock keymap: Enter sends, Shift+Enter breaks the line, Alt+Enter does nothing |
-| `dsh.composerEnterSendKeys` | `both` (default) / `shift` / `alt` | Which chord sends; `shift` leaves Alt+Enter at its stock no-op |
+| `dsh.composerEnterSendKeys` | `alt` (default) / `shift` / `both` | Which chord sends; `shift` and `both` restore the pre-0.5.0 `Shift+Enter` send |
 
 ```js
-localStorage.setItem('dsh.composerEnterSendKeys', 'shift') // send only with Shift+Enter
-localStorage.setItem('dsh.composerEnter', 'off')           // disable the plugin
-localStorage.removeItem('dsh.composerEnter')               // restore
+localStorage.setItem('dsh.composerEnterSendKeys', 'both') // Shift+Enter sends again
+localStorage.setItem('dsh.composerEnter', 'off')          // disable the plugin
+localStorage.removeItem('dsh.composerEnter')             // restore
 ```
 
 ## Why this works without patching dsh
@@ -76,15 +77,17 @@ priority: unmodified `Enter` submits, `shiftKey` falls through to the plain-text
 editor's line break, `altKey` is swallowed, `ctrlKey`/`metaKey` submits on the
 accelerated path.
 
-So this plugin intercepts the gesture during the window **capture** phase, stops the
-original event before the editor sees it, and re-dispatches the gesture the official
-code already implements:
+So this plugin intercepts the bare `Enter` gesture during the window **capture** phase,
+stops the original event before the editor sees it, and re-dispatches the gesture the
+official code already implements:
 
 | You press | Replayed as | Official result |
 | --- | --- | --- |
 | `Enter` | keydown with `shiftKey: true` | line break |
-| `Shift+Enter` | unmodified keydown | send (`enter` gesture → follows the busy-mode setting) |
-| `Alt+Enter` | unmodified keydown | send |
+| `Alt+Enter` | unmodified keydown | send (`enter` gesture → follows the busy-mode setting) |
+
+`Shift+Enter` is never replayed: it reaches the editor and takes the official line-break
+branch. `Ctrl/Cmd+Enter` is not intercepted either.
 
 Two implementation details matter:
 
@@ -95,7 +98,7 @@ Two implementation details matter:
    a dead key.
 
 The replay also forwards the originating key's `repeat` flag, so the shipped held-key
-guard still refuses machine-gun sends when you hold `Shift+Enter`.
+guard still refuses machine-gun sends when you hold `Alt+Enter`.
 
 ## Compatibility surface
 
@@ -116,9 +119,8 @@ keymap (never a broken composer).
 - **Settings → Keyboard shortcuts still shows the stock mapping** (`fixed.send`,
   `fixed.newline`, `fixed.complementary` are registered read-only by the app). What
   actually happens is decided by this plugin.
-- `Shift+Enter`/`Alt+Enter` go through the official `enter` gesture, so a send while
-  the agent is running follows the official setting (default: queue). The plugin never
-  steers.
+- `Alt+Enter` goes through the official `enter` gesture, so a send while the agent is
+  running follows the official setting (default: queue). The plugin never steers.
 - dsh exposes no official keymap seam for this: the fixed-input observer runs in the
   window bubble phase, after the editor already handled the key. Rerouting is
   therefore DOM-level, and is the reason for the compatibility table above.
@@ -131,7 +133,7 @@ No dependencies, no bundler, no network:
 
 ```sh
 node scripts/build.mjs      # regenerate lib/ from src/client/index.js
-node test/logic.test.mjs    # 22 cases in a dependency-free DOM harness
+node test/logic.test.mjs    # 23 cases in a dependency-free DOM harness
 ```
 
 `lib/` is committed on purpose: a checkout is installable without a build step. CI

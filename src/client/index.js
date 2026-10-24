@@ -1,9 +1,10 @@
 /**
  * Composer Enter behavior — external dsh Web client plugin.
  *
- * Goal: Enter inserts a line break, Shift+Enter sends, Alt+Enter sends, and
- * Ctrl/Cmd+Enter keeps the official complementary Queue/Steer gesture —
- * all without changing any dsh source code.
+ * Goal: Enter inserts a line break, Alt+Enter sends, and Ctrl/Cmd+Enter keeps
+ * the official complementary Queue/Steer gesture — all without changing any dsh
+ * source code. Shift+Enter is deliberately left to the stock keymap, which
+ * breaks the line: the official gesture keeps working for everyone used to it.
  *
  * How it works: the shipped composer keymap (`ui-conversation`) owns the Enter
  * semantics. A bare Enter submits; `shiftKey` events fall through to
@@ -15,14 +16,18 @@
  * gesture the official code already implements:
  *
  *   - Enter            -> replay as Shift+Enter -> official line break
- *   - Shift+Enter      -> replay as bare Enter  -> official send (queue)
  *   - Alt+Enter        -> replay as bare Enter  -> official send (queue)
+ *   - Shift+Enter      -> untouched: official line break
  *   - Ctrl/Cmd+Enter   -> untouched: official complementary gesture
  *   - Shift+Alt+Enter, AltGr+Enter, any other chord -> untouched
  *
- * Shift+Enter therefore submits through the `enter` gesture, i.e. the shipped
+ * Alt+Enter therefore submits through the `enter` gesture, i.e. the shipped
  * "Send behavior while busy" preference (default: queue) — never the
  * accelerated steer path that Ctrl+Enter keeps.
+ *
+ * Shift+Enter sent only in 0.4.x. It is no longer intercepted by default, because
+ * the stock line break is what most users expect; `dsh.composerEnterSendKeys =
+ * 'shift'` (or `'both'`) brings the old swap back.
  *
  * Replayed events carry an own-property marker so this plugin ignores its own
  * dispatch; without that marker a bare-Enter replay would be intercepted again.
@@ -32,10 +37,11 @@
  *
  * Auto-repeat: the shipped keymap refuses a held-down Enter (`event.repeat`), so
  * holding the key cannot machine-gun sends. A replay that dropped that flag
- * would bypass the guard — holding Shift+Enter would send on every repeat. The
+ * would bypass the guard — a held Alt+Enter would send on every repeat. The
  * replay therefore copies the originating key's `repeat` flag.
  *
  * Deliberately untouched:
+ *   - Shift+Enter        -> official line break (0.4.x intercepted and replayed it)
  *   - Ctrl/Cmd+Enter     -> official complementary Queue/Steer gesture
  *   - IME composition    -> official/IME owns the candidate-pick Enter
  *   - Claimed / submitting / adjudicating phases -> official command submit
@@ -45,8 +51,9 @@
  * Escape hatches (localStorage, read on every keystroke so a reload is optional):
  *   - `dsh.composerEnter = 'off'` -> stock keymap (Enter sends, Shift+Enter
  *     breaks the line, Alt+Enter does nothing)
- *   - `dsh.composerEnterSendKeys = 'shift' | 'alt' | 'both'` (default `both`)
- *     -> which chord replays as the official send gesture
+ *   - `dsh.composerEnterSendKeys = 'alt' | 'shift' | 'both'` (default `alt`)
+ *     -> which chord replays as the official send gesture; `shift`/`both`
+ *     re-enable the 0.4.x Shift+Enter send
  *
  * Known cosmetic limit: the shipped Keyboard-shortcuts reference lists
  * `fixed.send` / `fixed.newline` / `fixed.complementary` through
@@ -70,11 +77,10 @@ const POPUP_SELECTOR = '[role="listbox"]'
 const PLAIN_PHASE = 'plain'
 const DISABLE_FLAG = 'dsh.composerEnter'
 const DISABLED_VALUE = 'off'
-/** Which chord replays as the shipped send gesture. */
+/** Which chord replays as the shipped send gesture: `alt` (default), `shift`, `both`. */
 const SEND_KEYS_FLAG = 'dsh.composerEnterSendKeys'
 const SEND_BOTH = 'both'
 const SEND_SHIFT = 'shift'
-const SEND_ALT = 'alt'
 /** Own-property stamp on this plugin's replayed events (re-entrancy guard). */
 const REPLAY_FLAG = '__dshComposerEnterReplay'
 /** Legacy IME signal engines emit without `isComposing`. */
@@ -103,14 +109,16 @@ function disabledByUser() {
 }
 
 /**
- * Which chords should replay as the shipped send gesture.
+ * Which chords should replay as the shipped send gesture. The default is Alt
+ * alone: Shift+Enter keeps the official line break.
  * @returns the Shift+Enter and Alt+Enter switches.
  */
 function sendChords() {
   const stored = readFlag(SEND_KEYS_FLAG)
   if (stored === SEND_SHIFT) return { shift: true, alt: false }
-  if (stored === SEND_ALT) return { shift: false, alt: true }
-  return { shift: true, alt: true }
+  if (stored === SEND_BOTH) return { shift: true, alt: true }
+  // The explicit 'alt' and the default are the same: Shift+Enter stays official.
+  return { shift: false, alt: true }
 }
 
 /**
@@ -168,9 +176,9 @@ function createReplay(insertLineBreak, repeat) {
 }
 
 /**
- * Capture-phase keydown handler: swap Enter with Shift+Enter, let Alt+Enter send
- * too, and leave every other chord — Ctrl/Cmd+Enter above all — to the official
- * keymap.
+ * Capture-phase keydown handler: turn Enter into the line break, let Alt+Enter
+ * send, and leave every other chord — Shift+Enter and Ctrl/Cmd+Enter above
+ * all — to the official keymap.
  * @param event - the document keydown event.
  */
 function onKeyDownCapture(event) {
@@ -211,9 +219,9 @@ function onKeyDownCapture(event) {
 export function apply(ctx) {
   ctx.effect(() => {
     window.addEventListener('keydown', onKeyDownCapture, true)
-    console.info('[composer-enter] active: Enter breaks the line, Shift/Alt+Enter sends, Cmd/Ctrl+Enter keeps the official complementary gesture')
+    console.info('[composer-enter] active: Enter breaks the line, Alt+Enter sends, Shift+Enter keeps the official line break, Cmd/Ctrl+Enter keeps the official complementary gesture')
     return () => {
       window.removeEventListener('keydown', onKeyDownCapture, true)
     }
-  }, 'composer-enter: Enter/Shift+Enter swapped, Alt+Enter sends')
+  }, 'composer-enter: Enter breaks the line, Alt+Enter sends')
 }

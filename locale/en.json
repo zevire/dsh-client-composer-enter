@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Enter makes a line break",
-    "description": "Enter inserts a newline; Shift/Alt+Enter sends; Cmd/Ctrl+Enter keeps the official Queue/Steer gesture."
+    "description": "Enter inserts a newline; Alt+Enter sends; Shift+Enter keeps the official line break; Cmd/Ctrl+Enter keeps the official Queue/Steer gesture."
   }
 }

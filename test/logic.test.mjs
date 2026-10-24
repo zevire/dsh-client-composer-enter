@@ -7,11 +7,13 @@
  * The contract under test (the shipped keymap owns the semantics; the plugin
  * only swaps which gesture carries them):
  *   - Enter       -> replayed as Shift+Enter -> official line break
- *   - Shift+Enter -> replayed as bare Enter  -> official send (queue)
  *   - Alt+Enter   -> replayed as bare Enter  -> official send (queue)
+ *   - Shift+Enter -> untouched: the official line break (0.4.x sent instead)
  *   - Ctrl/Cmd+Enter, Shift+Alt+Enter, AltGr+Enter -> untouched, official
- *   - a held (auto-repeating) Shift/Alt+Enter replay keeps the `repeat` flag, so
- *     the shipped held-key guard still refuses the repeated send
+ *   - a held (auto-repeating) Alt+Enter replay keeps the `repeat` flag, so the
+ *     shipped held-key guard still refuses the repeated send
+ *   - `dsh.composerEnterSendKeys = 'shift' | 'both'` opts back into sending
+ *     with Shift+Enter
  *   - menus, popups, non-plain phases, IME composition, foreign targets, the
  *     disable flag and the disposed state are all left to the official code
  *   - the plugin's own replays are stamped and never re-intercepted
@@ -114,11 +116,12 @@ test('plain Enter is rerouted to a synthetic Shift+Enter (line break)', () => {
   d.dispose()
 })
 
-test('Shift+Enter is rerouted to a synthetic bare Enter (send)', () => {
+test('Shift+Enter keeps the official line break (left alone)', () => {
   const d = boot()
   const original = press(d.dom, d.input, { shiftKey: true })
-  assert.equal(original.defaultPrevented, true, 'the line-break gesture is taken over')
-  assert.deepEqual(d.signatures(), ['bare'], 'the shipped send gesture is replayed')
+  assert.equal(original.defaultPrevented, false, 'the official gesture must reach the editor')
+  assert.deepEqual(d.signatures(), ['shift'], 'no replay replaces it')
+  assert.equal(d.reached[0], original, 'the original event is the one delivered')
   d.dispose()
 })
 
@@ -131,18 +134,18 @@ test('Alt+Enter is rerouted to a synthetic bare Enter (send)', () => {
   d.dispose()
 })
 
-test('a held Shift+Enter forwards the auto-repeat flag to the send replay', () => {
+test('a held Alt+Enter forwards the auto-repeat flag to the send replay', () => {
   const d = boot()
-  press(d.dom, d.input, { shiftKey: true, repeat: true })
+  press(d.dom, d.input, { altKey: true, repeat: true })
   assert.equal(d.reached.length, 1, 'exactly one replay reaches the surface')
   assert.equal(d.reached[0].shiftKey, false, 'the send gesture stays bare Enter')
   assert.equal(d.reached[0].repeat, true, 'the shipped held-key guard must still see the repeat')
   d.dispose()
 })
 
-test('a first Shift+Enter replays without the repeat flag', () => {
+test('a first Alt+Enter replays without the repeat flag', () => {
   const d = boot()
-  press(d.dom, d.input, { shiftKey: true })
+  press(d.dom, d.input, { altKey: true })
   assert.equal(d.reached[0].repeat, false, 'a single press must still submit')
   d.dispose()
 })
@@ -205,7 +208,7 @@ test("sendKeys 'shift' makes Alt+Enter inert while Shift+Enter still sends", () 
   d.dispose()
 })
 
-test("sendKeys 'alt' makes Shift+Enter inert while Alt+Enter still sends", () => {
+test("sendKeys 'alt' (the default) leaves Shift+Enter official while Alt+Enter sends", () => {
   const d = boot()
   d.dom.localStorage.setItem(SEND_KEYS_FLAG, 'alt')
   const shift = press(d.dom, d.input, { shiftKey: true })
@@ -213,6 +216,18 @@ test("sendKeys 'alt' makes Shift+Enter inert while Alt+Enter still sends", () =>
   const alt = press(d.dom, d.input, { altKey: true })
   assert.equal(alt.defaultPrevented, true)
   assert.deepEqual(d.signatures(), ['shift', 'bare'])
+  d.dispose()
+})
+
+test("sendKeys 'both' restores the 0.4.x mapping where Shift+Enter sends", () => {
+  const d = boot()
+  d.dom.localStorage.setItem(SEND_KEYS_FLAG, 'both')
+  const shift = press(d.dom, d.input, { shiftKey: true })
+  assert.equal(shift.defaultPrevented, true, 'the opt-in swap takes the line-break gesture over')
+  assert.deepEqual(d.signatures(), ['bare'])
+  const alt = press(d.dom, d.input, { altKey: true })
+  assert.equal(alt.defaultPrevented, true)
+  assert.deepEqual(d.signatures(), ['bare', 'bare'])
   d.dispose()
 })
 

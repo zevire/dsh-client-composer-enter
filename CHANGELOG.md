@@ -1,7 +1,17 @@
 # Changelog
 
 All notable changes to this plugin are documented here. The version tracks the
-internal development line; `0.4.1` is the first public release.
+internal development line; `0.4.1` was the first public release.
+
+## 0.5.0
+
+- `Shift+Enter` is no longer intercepted: it keeps the stock line break, so the
+  official gesture works out of the box for users who expect it.
+- Sending stays on `Alt+Enter`; `Cmd/Ctrl+Enter` still keeps the official
+  complementary Queue/Steer gesture.
+- `dsh.composerEnterSendKeys` now defaults to `alt`; `shift` and `both` opt back
+  into the 0.4.x mapping where `Shift+Enter` sends.
+- Verified against dsh `0.2.1-rc.3` (Desktop and Web profiles).
 
 ## 0.4.1
 
