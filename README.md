@@ -7,7 +7,7 @@
 
 dsh 的 composer 默认「裸 Enter 发送、Shift+Enter 换行」。写多行提示词时这是反的：一不留神就发出去了，想换行还得按修饰键。本插件只把**裸 Enter** 改成换行，发送交给 `Alt+Enter`；`Shift+Enter` 保持官方的换行行为，`Cmd/Ctrl+Enter` 的官方「互补」Queue/Steer 手势也**原样保留**。
 
-已在 dsh `0.1.7-rc.2` / `0.2.0-rc.2` / `0.2.1-rc.2` / `0.2.1-rc.3`（桌面版与 Web profile）上验证。
+已在 dsh `0.1.7-rc.2` / `0.2.0-rc.2` / `0.2.1-rc.2` / `0.2.1-rc.3` / `0.2.1-rc.5`（桌面版与 Web profile）上验证。
 
 ## 行为
 

@@ -11,7 +11,7 @@ This plugin turns **only the bare `Enter`** into a line break and moves sending 
 `Alt+Enter`; `Shift+Enter` keeps the official line break, and `Cmd/Ctrl+Enter` stays
 on the official complementary Queue/Steer gesture.
 
-Tested against dsh `0.1.7-rc.2`, `0.2.0-rc.2`, `0.2.1-rc.2` and `0.2.1-rc.3` (Desktop and Web profiles).
+Tested against dsh `0.1.7-rc.2`, `0.2.0-rc.2`, `0.2.1-rc.2`, `0.2.1-rc.3` and `0.2.1-rc.5` (Desktop and Web profiles).
 
 ## Behavior
 
