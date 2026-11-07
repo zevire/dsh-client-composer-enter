@@ -5,7 +5,7 @@ internal development line; `0.4.1` was the first public release.
 
 ## Unreleased
 
-- Verified against dsh `0.2.1-rc.5`; no source changes were required.
+- Verified against dsh `0.2.1-rc.5` and `0.2.2-rc.1`; no source changes were required.
 
 ## 0.5.0
 
